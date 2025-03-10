@@ -43,7 +43,7 @@ if(empty ($messages)) {
         }
 	$months = $y * 12;
 	$monthly_loan_instalment = $x / $months;
-	$result = $monthly_loan_instalment + ($monthly_loan_instalment * $z);
+	$result = round($monthly_loan_instalment + ($monthly_loan_instalment * $z), 2);
 
 } 	
 
