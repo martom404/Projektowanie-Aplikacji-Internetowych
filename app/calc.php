@@ -1,37 +1,29 @@
 <?php
-// KONTROLER strony kalkulatora
 require_once dirname(__FILE__).'/../config.php';
 
-// W kontrolerze niczego nie wysyła się do klienta.
-// Wysłaniem odpowiedzi zajmie się odpowiedni widok.
-// Parametry do widoku przekazujemy przez zmienne.
+include _ROOT_PATH.'/app/security/check.php';
 
-// 1. pobranie parametrów
-
-$x = $_REQUEST ['x'];
-$y = $_REQUEST ['y'];
-$operation = $_REQUEST ['op'];
-
-// 2. walidacja parametrów z przygotowaniem zmiennych dla widoku
-
-// sprawdzenie, czy parametry zostały przekazane
-if ( ! (isset($x) && isset($y) && isset($operation))) {
-	//sytuacja wystąpi kiedy np. kontroler zostanie wywołany bezpośrednio - nie z formularza
-	$messages [] = 'Błędne wywołanie aplikacji. Brak jednego z parametrów.';
+function getParams(&$x,&$y,&$operation){
+	$x = isset($_REQUEST['x']) ? $_REQUEST['x'] : null;
+	$y = isset($_REQUEST['y']) ? $_REQUEST['y'] : null;
+	$operation = isset($_REQUEST['op']) ? $_REQUEST['op'] : null;	
 }
 
-// sprawdzenie, czy potrzebne wartości zostały przekazane
-if ( $x == "") {
-	$messages [] = 'Nie podano liczby 1';
-}
-if ( $y == "") {
-	$messages [] = 'Nie podano liczby 2';
-}
-
-//nie ma sensu walidować dalej gdy brak parametrów
-if (empty( $messages )) {
+function validate(&$x,&$y,&$operation,&$messages){
 	
-	// sprawdzenie, czy $x i $y są liczbami całkowitymi
+	if ( ! (isset($x) && isset($y) && isset($operation))) {
+		return false;
+	}
+
+	if ( $x == "") {
+		$messages [] = 'Nie podano liczby 1';
+	}
+	if ( $y == "") {
+		$messages [] = 'Nie podano liczby 2';
+	}
+
+	if (count ( $messages ) != 0) return false;
+	
 	if (! is_numeric( $x )) {
 		$messages [] = 'Pierwsza wartość nie jest liczbą całkowitą';
 	}
@@ -40,26 +32,33 @@ if (empty( $messages )) {
 		$messages [] = 'Druga wartość nie jest liczbą całkowitą';
 	}	
 
+	if (count ( $messages ) != 0) return false;
+	else return true;
 }
 
-// 3. wykonaj zadanie jeśli wszystko w porządku
-
-if (empty ( $messages )) { // gdy brak błędów
+function process(&$x,&$y,&$operation,&$messages,&$result){
+	global $role;
 	
-	//konwersja parametrów na int
 	$x = intval($x);
 	$y = intval($y);
 	
-	//wykonanie operacji
 	switch ($operation) {
 		case 'minus' :
-			$result = $x - $y;
+			if ($role == 'admin'){
+				$result = $x - $y;
+			} else {
+				$messages [] = 'Tylko administrator może odejmować !';
+			}
 			break;
 		case 'times' :
 			$result = $x * $y;
 			break;
 		case 'div' :
-			$result = $x / $y;
+			if ($role == 'admin'){
+				$result = $x / $y;
+			} else {
+				$messages [] = 'Tylko administrator może dzielić !';
+			}
 			break;
 		default :
 			$result = $x + $y;
@@ -67,7 +66,15 @@ if (empty ( $messages )) { // gdy brak błędów
 	}
 }
 
-// 4. Wywołanie widoku z przekazaniem zmiennych
-// - zainicjowane zmienne ($messages,$x,$y,$operation,$result)
-//   będą dostępne w dołączonym skrypcie
+$x = null;
+$y = null;
+$operation = null;
+$result = null;
+$messages = array();
+
+getParams($x,$y,$operation);
+if ( validate($x,$y,$operation,$messages) ) { 
+	process($x,$y,$operation,$messages,$result);
+}
+
 include 'calc_view.php';
